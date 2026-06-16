@@ -28,6 +28,7 @@ export class MailerService {
 
   async sendOtpToEmail(to: string, otp: string) {
     try {
+      console.log(to)
       const info = await this.transporter.sendMail({
         from: this.configService.get<string>('Brevo.sender_email'),
         to,
