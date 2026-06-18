@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
@@ -6,6 +15,17 @@ import { UpdateUserDto } from './userDto/update.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from './UserSchema/User.schema';
+
+export interface JwtPayload {
+  userId: string;
+  email: string;
+  role: string;
+  name: string;
+}
+
+export interface AuthRequest extends Request {
+  user: JwtPayload;
+}
 
 @Controller('users')
 export class UsersController {
@@ -29,10 +49,16 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('delete/myaccount')
+  deleteMyAccount(@Req() req: AuthRequest) {
+    return this.usersService.removeUser(req.user.userId, req.user);
+  }
+
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.USER)
+  @Roles(UserRole.ADMIN)
   @Delete('delete/:id')
-  deleteUser(@Param('id') id: string, @Req() req:Request) {
-    return this.usersService.removeUser(id,req.user);
+  removeUser(@Param('id') id: string, @Req() req: AuthRequest) {
+    return this.usersService.removeUser(id, req.user);
   }
 }
