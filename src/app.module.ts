@@ -8,6 +8,9 @@ import config from './config/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import {JwtModule} from '@nestjs/jwt'
 import { PostsModule } from './posts/posts.module';
+import { VotesModule } from './votes/votes.module';
+import { CommentsModule } from './comments/comments.module';
+import { VotesModule } from './votes/votes.module';
 
 import * as dns from 'dns';
 
@@ -40,6 +43,8 @@ dns.setServers(["1.1.1.1", "8.8.8.8"]);
     AuthModule,
     UsersModule,
     PostsModule,
+    VotesModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
