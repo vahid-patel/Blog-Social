@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { VotesService } from './votes.service';
-import { CreateVoteDto } from './dto/create-vote.dto';
+import { VoteDto } from './dto/create-vote.dto'; 
 import { UpdateVoteDto } from './dto/update-vote.dto';
 
 @Controller('votes')
@@ -8,7 +8,7 @@ export class VotesController {
   constructor(private readonly votesService: VotesService) {}
 
   @Post()
-  create(@Body() createVoteDto: CreateVoteDto) {
+  create(@Body() createVoteDto: VoteDto) {
     return this.votesService.create(createVoteDto);
   }
 

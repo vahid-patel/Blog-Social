@@ -1,26 +1,116 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Post, PostDocument, PostStatus } from './PostSchema/post.schema';
+import { Model } from 'mongoose';
+import { JwtPayload } from '../users/users.controller';
 
 @Injectable()
 export class PostsService {
-  create(createPostDto: CreatePostDto) {
-    return 'This action adds a new post';
+  constructor(@InjectModel(Post.name) private postModel: Model<PostDocument>) {}
+  async create(createPostDto: CreatePostDto, user: JwtPayload) {
+    const { userId } = user;
+
+    return await this.postModel.create({
+      ...createPostDto,
+      author: userId,
+    });
   }
 
-  findAll() {
-    return `This action returns all posts`;
+  async getAllPosts(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    const posts = await this.postModel
+      .find({ status: PostStatus.PUBLISHED })
+      .skip(skip)
+      .limit(limit)
+      .populate('author', 'name email');
+
+    const totalPosts = await this.postModel.countDocuments({status: PostStatus.PUBLISHED});
+
+    return {
+      totalPosts,
+      page,
+      limit,
+      totalPages: Math.ceil(totalPosts / limit),
+      posts,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} post`;
+  async searchPosts(keyword: string, page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    if (!keyword || keyword.trim() == '') {
+      return { message: 'No results' };
+    }
+
+    const filter = {
+      status: PostStatus.PUBLISHED,
+      $text: { $search: keyword },
+    };
+
+    const posts = await this.postModel
+      .find(filter, { textScore: { $meta: 'textScore' } })
+      .skip(skip)
+      .limit(limit)
+      .populate('author', 'name email')
+      .sort({ textScore: { $meta: 'textScore' } });
+
+    const totalPosts = await this.postModel.countDocuments(filter);
+
+    return {
+      totalPosts,
+      page,
+      limit,
+      totalPages: Math.ceil(totalPosts / limit),
+      posts,
+    };
   }
 
-  update(id: number, updatePostDto: UpdatePostDto) {
-    return `This action updates a #${id} post`;
+  async findOne(id: string) {
+    const post = await this.postModel
+      .findOne({ _id: id, status: PostStatus.PUBLISHED })
+      .populate('author', 'name email');
+
+    if (!post) throw new NotFoundException('Post not found');
+    
+    return post;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} post`;
+  async update(id: string, updatePostDto: UpdatePostDto, user: JwtPayload) {
+    const post = await this.postModel.findById(id);
+
+    if (!post) throw new NotFoundException('Post not found');
+
+    if (post.author.toString() !== user.userId) {
+      throw new ForbiddenException('You are not allowed to update this post');
+    }
+
+    Object.assign(post, updatePostDto);
+
+    await post.save();
+
+    return post.populate('author', 'name email');
+  }
+
+  async remove(id: string, user: JwtPayload) {
+    const post = await this.postModel.findById(id);
+
+    if (!post) throw new NotFoundException('Post not found');
+
+    const isOwner = post.author.toString() === user.userId;
+    const isAdmin = user.role === 'ADMIN';
+
+    if (!isOwner && !isAdmin)
+      throw new ForbiddenException('You are not allowed to delete this post');
+
+    await post.deleteOne();
+
+    return { message: 'Post Deleted Successfully' };
   }
 }

@@ -10,7 +10,6 @@ import {JwtModule} from '@nestjs/jwt'
 import { PostsModule } from './posts/posts.module';
 import { VotesModule } from './votes/votes.module';
 import { CommentsModule } from './comments/comments.module';
-import { VotesModule } from './votes/votes.module';
 
 import * as dns from 'dns';
 

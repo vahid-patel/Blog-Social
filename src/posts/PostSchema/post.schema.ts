@@ -105,10 +105,7 @@ export class Post {
   })
   status!: PostStatus;
 
-  @Prop({
-    default: false,
-  })
-  isDeleted!: boolean;
+  
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);
