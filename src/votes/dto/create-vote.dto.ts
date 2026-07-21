@@ -1,13 +1,7 @@
-import { IsEnum, IsMongoId } from 'class-validator';
-import { VoteTarget, VoteType } from '../VotesSchema/vote.schema';
+import { IsEnum } from 'class-validator';
+import { VoteType } from '../VotesSchema/vote.schema';
 
-export class VoteDto {
-  @IsMongoId()
-  targetId!: string;
-
-  @IsEnum(VoteTarget)
-  targetType!: VoteTarget;
-
+export class CreateVoteDto {
   @IsEnum(VoteType)
-  voteType!: VoteType;
+  type!: VoteType;
 }

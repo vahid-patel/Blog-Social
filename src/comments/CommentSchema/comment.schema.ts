@@ -19,24 +19,23 @@ export class Comment {
     type: Types.ObjectId,
     ref: 'User',
     required: true,
+    index: true,
   })
   author!: Types.ObjectId;
 
-  // null = top-level comment
-  // ObjectId = reply to another comment
+  @Prop({
+    required: true,
+    trim: true,
+  })
+  content!: string;
+
+  // For nested replies
   @Prop({
     type: Types.ObjectId,
     ref: 'Comment',
     default: null,
   })
-  parentComment!: Types.ObjectId | null;
-
-  @Prop({
-    required: true,
-    trim: true,
-    maxlength: 5000,
-  })
-  content!: string;
+  parentComment?: Types.ObjectId | null;
 
   @Prop({
     default: 0,
@@ -51,12 +50,7 @@ export class Comment {
   @Prop({
     default: 0,
   })
-  repliesCount!: number;
-
-  @Prop({
-    default: false,
-  })
-  isDeleted!: boolean;
+  score!: number;
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);
@@ -68,4 +62,9 @@ CommentSchema.index({
 
 CommentSchema.index({
   parentComment: 1,
+  createdAt: 1,
+});
+
+CommentSchema.index({
+  score: -1,
 });

@@ -1,26 +1,227 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+
+import { Comment, CommentDocument } from './CommentSchema/comment.schema';
+
+import { Post, PostDocument } from '../posts/PostSchema/post.schema';
+
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
+import { JwtPayload } from '../users/users.controller';
+
 @Injectable()
 export class CommentsService {
-  create(createCommentDto: CreateCommentDto) {
-    return 'This action adds a new comment';
+  constructor(
+    @InjectModel(Comment.name)
+    private readonly commentModel: Model<CommentDocument>,
+
+    @InjectModel(Post.name)
+    private readonly postModel: Model<PostDocument>,
+  ) {}
+
+  // =========================================================
+  // CREATE COMMENT / REPLY
+  // =========================================================
+
+  async create(
+    postId: string,
+    createCommentDto: CreateCommentDto,
+    user: JwtPayload,
+  ) {
+    // Check if post exists
+    const post = await this.postModel.findById(postId);
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const { content, parentComment } = createCommentDto;
+
+    // If parentComment exists, then this is a reply
+    if (parentComment) {
+      const parent = await this.commentModel.findById(parentComment);
+
+      if (!parent) {
+        throw new NotFoundException('Parent comment not found');
+      }
+
+      // Make sure parent belongs to same post
+      if (parent.post.toString() !== postId) {
+        throw new BadRequestException(
+          'Parent comment does not belong to this post',
+        );
+      }
+    }
+
+    const comment = await this.commentModel.create({
+      post: postId,
+      author: user.userId,
+      content,
+      parentComment: parentComment ?? null,
+    });
+
+    // Increment total comments/replies count
+    post.commentsCount += 1;
+
+    await post.save();
+
+    return comment.populate('author', 'name email');
   }
 
-  findAll() {
-    return `This action returns all comments`;
+  // =========================================================
+  // GET TOP LEVEL COMMENTS
+  // =========================================================
+
+  async getPostComments(postId: string, page: number, limit: number) {
+    const postExists = await this.postModel.exists({
+      _id: postId,
+    });
+
+    if (!postExists) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Only top-level comments
+    const filter = {
+      post: postId,
+      parentComment: null,
+    };
+
+    const comments = await this.commentModel
+      .find(filter)
+      .populate('author', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalComments = await this.commentModel.countDocuments(filter);
+
+    return {
+      totalComments,
+      page,
+      limit,
+      totalPages: Math.ceil(totalComments / limit),
+      comments,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} comment`;
+  // =========================================================
+  // GET REPLIES
+  // =========================================================
+
+  async getReplies(commentId: string, page: number, limit: number) {
+    // Make sure parent comment exists
+    const parentComment = await this.commentModel.findById(commentId);
+
+    if (!parentComment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    const skip = (page - 1) * limit;
+
+    const filter = {
+      parentComment: commentId,
+    };
+
+    const replies = await this.commentModel
+      .find(filter)
+      .populate('author', 'name email')
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalReplies = await this.commentModel.countDocuments(filter);
+
+    return {
+      totalReplies,
+      page,
+      limit,
+      totalPages: Math.ceil(totalReplies / limit),
+      replies,
+    };
   }
 
-  update(id: number, updateCommentDto: UpdateCommentDto) {
-    return `This action updates a #${id} comment`;
+  // =========================================================
+  // UPDATE COMMENT
+  // =========================================================
+
+  async update(
+    commentId: string,
+    updateCommentDto: UpdateCommentDto,
+    user: JwtPayload,
+  ) {
+    const comment = await this.commentModel.findById(commentId);
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    // Only owner can update
+    if (comment.author.toString() !== user.userId) {
+      throw new ForbiddenException(
+        'You are not allowed to update this comment',
+      );
+    }
+
+    comment.content = updateCommentDto.content;
+
+    await comment.save();
+
+    return comment.populate('author', 'name email');
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} comment`;
+  // =========================================================
+  // DELETE COMMENT
+  // =========================================================
+
+  async remove(commentId: string, user: JwtPayload) {
+    const comment = await this.commentModel.findById(commentId);
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    const isOwner = comment.author.toString() === user.userId;
+
+    const isAdmin = user.role === 'ADMIN';
+
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException(
+        'You are not allowed to delete this comment',
+      );
+    }
+
+    // Check whether this comment has replies
+    const hasReplies = await this.commentModel.exists({
+      parentComment: commentId,
+    });
+
+    // =====================================================
+    // HARD DELETE
+    // Comment has no replies
+    // =====================================================
+
+    await comment.deleteOne();
+
+    // Decrement post commentsCount
+    await this.postModel.findByIdAndUpdate(comment.post, {
+      $inc: {
+        commentsCount: -1,
+      },
+    });
+
+    return {
+      message: 'Comment deleted successfully',
+    };
   }
 }

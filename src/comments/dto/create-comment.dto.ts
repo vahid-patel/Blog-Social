@@ -7,9 +7,6 @@ import {
 } from 'class-validator';
 
 export class CreateCommentDto {
-  @IsMongoId()
-  post!: string;
-
   @IsString()
   @IsNotEmpty()
   @MaxLength(5000)

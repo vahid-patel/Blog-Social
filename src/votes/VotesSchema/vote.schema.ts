@@ -4,11 +4,11 @@ import { HydratedDocument, Types } from 'mongoose';
 export type VoteDocument = HydratedDocument<Vote>;
 
 export enum VoteType {
-  UPVOTE = 1,
-  DOWNVOTE = -1,
+  UPVOTE = 'UPVOTE',
+  DOWNVOTE = 'DOWNVOTE',
 }
 
-export enum VoteTarget {
+export enum VoteTargetType {
   POST = 'POST',
   COMMENT = 'COMMENT',
 }
@@ -21,31 +21,33 @@ export class Vote {
     type: Types.ObjectId,
     ref: 'User',
     required: true,
+    index: true,
   })
   user!: Types.ObjectId;
 
   @Prop({
     type: Types.ObjectId,
     required: true,
+    index: true,
   })
   targetId!: Types.ObjectId;
 
   @Prop({
-    enum: VoteTarget,
+    enum: VoteTargetType,
     required: true,
   })
-  targetType!: VoteTarget;
+  targetType!: VoteTargetType;
 
   @Prop({
     enum: VoteType,
     required: true,
   })
-  voteType!: VoteType;
+  type!: VoteType;
 }
 
 export const VoteSchema = SchemaFactory.createForClass(Vote);
 
-// A user can vote only once per post/comment
+// One user can have only one vote per target
 VoteSchema.index(
   {
     user: 1,

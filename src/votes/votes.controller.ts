@@ -1,34 +1,101 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
 import { VotesService } from './votes.service';
-import { VoteDto } from './dto/create-vote.dto'; 
-import { UpdateVoteDto } from './dto/update-vote.dto';
+import { CreateVoteDto } from './dto/create-vote.dto';
+import type { AuthRequest } from '../users/users.controller';
 
 @Controller('votes')
+@UseGuards(AuthGuard('jwt'))
 export class VotesController {
-  constructor(private readonly votesService: VotesService) {}
+  constructor(
+    private readonly votesService: VotesService,
+  ) {}
 
-  @Post()
-  create(@Body() createVoteDto: VoteDto) {
-    return this.votesService.create(createVoteDto);
+  // =====================
+  // POST VOTES
+  // =====================
+
+  @Post('posts/:postId')
+  votePost(
+    @Param('postId') postId: string,
+    @Body() dto: CreateVoteDto,
+    @Req() req: AuthRequest,
+  ) {
+    return this.votesService.votePost(
+      postId,
+      dto.type,
+      req.user,
+    );
   }
 
-  @Get()
-  findAll() {
-    return this.votesService.findAll();
+  @Delete('posts/:postId')
+  removePostVote(
+    @Param('postId') postId: string,
+    @Req() req: AuthRequest,
+  ) {
+    return this.votesService.removePostVote(
+      postId,
+      req.user,
+    );
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.votesService.findOne(+id);
+  @Get('posts/:postId/me')
+  getMyPostVote(
+    @Param('postId') postId: string,
+    @Req() req: AuthRequest,
+  ) {
+    return this.votesService.getMyPostVote(
+      postId,
+      req.user,
+    );
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateVoteDto: UpdateVoteDto) {
-    return this.votesService.update(+id, updateVoteDto);
+  // =====================
+  // COMMENT VOTES
+  // =====================
+
+  @Post('comments/:commentId')
+  voteComment(
+    @Param('commentId') commentId: string,
+    @Body() dto: CreateVoteDto,
+    @Req() req: AuthRequest,
+  ) {
+    return this.votesService.voteComment(
+      commentId,
+      dto.type,
+      req.user,
+    );
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.votesService.remove(+id);
+  @Delete('comments/:commentId')
+  removeCommentVote(
+    @Param('commentId') commentId: string,
+    @Req() req: AuthRequest,
+  ) {
+    return this.votesService.removeCommentVote(
+      commentId,
+      req.user,
+    );
+  }
+
+  @Get('comments/:commentId/me')
+  getMyCommentVote(
+    @Param('commentId') commentId: string,
+    @Req() req: AuthRequest,
+  ) {
+    return this.votesService.getMyCommentVote(
+      commentId,
+      req.user,
+    );
   }
 }
