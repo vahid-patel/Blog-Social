@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
@@ -12,10 +9,7 @@ import {
   VoteType,
 } from './VotesSchema/vote.schema';
 
-import {
-  Post,
-  PostDocument,
-} from '../posts/PostSchema/post.schema';
+import { Post, PostDocument } from '../posts/PostSchema/post.schema';
 
 import {
   Comment,
@@ -41,11 +35,7 @@ export class VotesService {
   // POST VOTING
   // =========================================================
 
-  async votePost(
-    postId: string,
-    type: VoteType,
-    user: JwtPayload,
-  ) {
+  async votePost(postId: string, type: VoteType, user: JwtPayload) {
     const post = await this.postModel.findById(postId);
 
     if (!post) {
@@ -86,11 +76,22 @@ export class VotesService {
       };
     }
 
-    // CASE 2: User sends the same vote again
+    // CASE 2:Same vote clicked again → remove vote
     if (existingVote.type === type) {
+      if (type === VoteType.UPVOTE) {
+        post.upvotesCount -= 1;
+        post.score -= 1;
+      } else {
+        post.downvotesCount -= 1;
+        post.score += 1;
+      }
+
+      await existingVote.deleteOne();
+      await post.save();
+
       return {
-        message: 'You have already voted this way',
-        vote: existingVote.type,
+        message: 'Vote removed successfully',
+        vote: null,
         upvotesCount: post.upvotesCount,
         downvotesCount: post.downvotesCount,
         score: post.score,
@@ -98,10 +99,7 @@ export class VotesService {
     }
 
     // CASE 3: UPVOTE -> DOWNVOTE
-    if (
-      existingVote.type === VoteType.UPVOTE &&
-      type === VoteType.DOWNVOTE
-    ) {
+    if (existingVote.type === VoteType.UPVOTE && type === VoteType.DOWNVOTE) {
       post.upvotesCount -= 1;
       post.downvotesCount += 1;
 
@@ -110,10 +108,7 @@ export class VotesService {
     }
 
     // CASE 4: DOWNVOTE -> UPVOTE
-    if (
-      existingVote.type === VoteType.DOWNVOTE &&
-      type === VoteType.UPVOTE
-    ) {
+    if (existingVote.type === VoteType.DOWNVOTE && type === VoteType.UPVOTE) {
       post.downvotesCount -= 1;
       post.upvotesCount += 1;
 
@@ -135,52 +130,7 @@ export class VotesService {
     };
   }
 
-  async removePostVote(
-    postId: string,
-    user: JwtPayload,
-  ) {
-    const post = await this.postModel.findById(postId);
-
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
-
-    const existingVote = await this.voteModel.findOne({
-      user: user.userId,
-      targetId: postId,
-      targetType: VoteTargetType.POST,
-    });
-
-    if (!existingVote) {
-      return {
-        message: 'No vote found',
-      };
-    }
-
-    if (existingVote.type === VoteType.UPVOTE) {
-      post.upvotesCount -= 1;
-      post.score -= 1;
-    } else {
-      post.downvotesCount -= 1;
-      post.score += 1;
-    }
-
-    await existingVote.deleteOne();
-    await post.save();
-
-    return {
-      message: 'Vote removed successfully',
-      vote: null,
-      upvotesCount: post.upvotesCount,
-      downvotesCount: post.downvotesCount,
-      score: post.score,
-    };
-  }
-
-  async getMyPostVote(
-    postId: string,
-    user: JwtPayload,
-  ) {
+  async getMyPostVote(postId: string, user: JwtPayload) {
     const vote = await this.voteModel.findOne({
       user: user.userId,
       targetId: postId,
@@ -196,13 +146,8 @@ export class VotesService {
   // COMMENT VOTING
   // =========================================================
 
-  async voteComment(
-    commentId: string,
-    type: VoteType,
-    user: JwtPayload,
-  ) {
-    const comment =
-      await this.commentModel.findById(commentId);
+  async voteComment(commentId: string, type: VoteType, user: JwtPayload) {
+    const comment = await this.commentModel.findById(commentId);
 
     if (!comment) {
       throw new NotFoundException('Comment not found');
@@ -244,9 +189,20 @@ export class VotesService {
 
     // CASE 2: Same vote
     if (existingVote.type === type) {
+      if (type === VoteType.UPVOTE) {
+        comment.upvotesCount -= 1;
+        comment.score -= 1;
+      } else {
+        comment.downvotesCount -= 1;
+        comment.score += 1;
+      }
+
+      await existingVote.deleteOne();
+      await comment.save();
+
       return {
-        message: 'You have already voted this way',
-        vote: existingVote.type,
+        message: 'Vote removed successfully',
+        vote: null,
         upvotesCount: comment.upvotesCount,
         downvotesCount: comment.downvotesCount,
         score: comment.score,
@@ -254,10 +210,7 @@ export class VotesService {
     }
 
     // CASE 3: UPVOTE -> DOWNVOTE
-    if (
-      existingVote.type === VoteType.UPVOTE &&
-      type === VoteType.DOWNVOTE
-    ) {
+    if (existingVote.type === VoteType.UPVOTE && type === VoteType.DOWNVOTE) {
       comment.upvotesCount -= 1;
       comment.downvotesCount += 1;
 
@@ -265,10 +218,7 @@ export class VotesService {
     }
 
     // CASE 4: DOWNVOTE -> UPVOTE
-    if (
-      existingVote.type === VoteType.DOWNVOTE &&
-      type === VoteType.UPVOTE
-    ) {
+    if (existingVote.type === VoteType.DOWNVOTE && type === VoteType.UPVOTE) {
       comment.downvotesCount -= 1;
       comment.upvotesCount += 1;
 
@@ -289,53 +239,9 @@ export class VotesService {
     };
   }
 
-  async removeCommentVote(
-    commentId: string,
-    user: JwtPayload,
-  ) {
-    const comment =
-      await this.commentModel.findById(commentId);
 
-    if (!comment) {
-      throw new NotFoundException('Comment not found');
-    }
 
-    const existingVote = await this.voteModel.findOne({
-      user: user.userId,
-      targetId: commentId,
-      targetType: VoteTargetType.COMMENT,
-    });
-
-    if (!existingVote) {
-      return {
-        message: 'No vote found',
-      };
-    }
-
-    if (existingVote.type === VoteType.UPVOTE) {
-      comment.upvotesCount -= 1;
-      comment.score -= 1;
-    } else {
-      comment.downvotesCount -= 1;
-      comment.score += 1;
-    }
-
-    await existingVote.deleteOne();
-    await comment.save();
-
-    return {
-      message: 'Vote removed successfully',
-      vote: null,
-      upvotesCount: comment.upvotesCount,
-      downvotesCount: comment.downvotesCount,
-      score: comment.score,
-    };
-  }
-
-  async getMyCommentVote(
-    commentId: string,
-    user: JwtPayload,
-  ) {
+  async getMyCommentVote(commentId: string, user: JwtPayload) {
     const vote = await this.voteModel.findOne({
       user: user.userId,
       targetId: commentId,

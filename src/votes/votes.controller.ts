@@ -38,17 +38,6 @@ export class VotesController {
     );
   }
 
-  @Delete('posts/:postId')
-  removePostVote(
-    @Param('postId') postId: string,
-    @Req() req: AuthRequest,
-  ) {
-    return this.votesService.removePostVote(
-      postId,
-      req.user,
-    );
-  }
-
   @Get('posts/:postId/me')
   getMyPostVote(
     @Param('postId') postId: string,
@@ -77,16 +66,6 @@ export class VotesController {
     );
   }
 
-  @Delete('comments/:commentId')
-  removeCommentVote(
-    @Param('commentId') commentId: string,
-    @Req() req: AuthRequest,
-  ) {
-    return this.votesService.removeCommentVote(
-      commentId,
-      req.user,
-    );
-  }
 
   @Get('comments/:commentId/me')
   getMyCommentVote(
