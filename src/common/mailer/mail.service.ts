@@ -30,7 +30,7 @@ export class MailerService {
     try {
       console.log(to)
       const info = await this.transporter.sendMail({
-        from: this.configService.get<string>('Brevo.sender_email'),
+        from: this.configService.get<string>('Brevo.SENDER_EMAIL'),
         to,
         subject: 'Your Email Verification OTP Code',
         text: `Your OTP code is ${otp}. It expires in 10 minutes.`,
@@ -43,7 +43,7 @@ export class MailerService {
   async sendLinkToEmail(to: string, link: string) {
     try {
       const info = await this.transporter.sendMail({
-        from: this.configService.get<string>('Brevo.sender_email'),
+        from: this.configService.get<string>('Brevo.SENDER_EMAIL'),
         to,
         subject: 'Your Forgot Password Verification Link',
         text: `Your Forgot Password link is ${link}. It expires in 15 minutes.`,
