@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User, UserDocument } from '../users/UserSchema/User.schema';
+import { User, UserDocument, UserRole } from '../users/UserSchema/User.schema';
 import { JwtService } from '@nestjs/jwt';
 import { MailerService } from '../common/mailer/mail.service';
 import { Model } from 'mongoose';
@@ -26,7 +26,7 @@ export class AuthService {
   ) {}
 
   async signUp(signupData: SignupDto) {
-    const { email, password, role, name } = signupData;
+    const { email, password, name } = signupData;
 
     const isUser = await this.userModel.findOne({ email });
 
@@ -42,7 +42,7 @@ export class AuthService {
       name,
       email,
       password: hashedPassword,
-      role,
+      role:UserRole.USER,
       verified: false,
       otp,
       otpExpires,
@@ -113,7 +113,7 @@ export class AuthService {
 
     await this.redisClient.set(`resetToken:${user._id}`, token, 'EX', 900);
 
-    const resetLink = `http://localhost:3000/reset-password?token=${token}&userId=${user._id}`;
+    const resetLink = `http://localhost:3001/reset-password?token=${token}&userId=${user._id}`;
 
     await this.mailerService.sendLinkToEmail(email, resetLink);
 

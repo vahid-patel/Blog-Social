@@ -16,9 +16,7 @@ export class SignupDto{
     @IsStrongPassword()
     password!:string
 
-    @IsNotEmpty()
-    @IsEnum(UserRole)
-    role!:UserRole
+   
 
 }
 
