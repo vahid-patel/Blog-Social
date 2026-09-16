@@ -14,6 +14,7 @@ export const RedisProvider: Provider = {
     const client = new Redis({
       host: configService.get<string>('REDIS_HOST'),
       port: Number(configService.get('REDIS_PORT')),
+      username: configService.get<string>('REDIS_USER') || 'default',
       password: configService.get<string>('REDIS_PASS'),
 
       family: 4,
