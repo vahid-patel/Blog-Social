@@ -13,6 +13,7 @@ import { CommentsModule } from './comments/comments.module';
 
 import * as dns from 'dns';
 import { RedisModule } from './redis/redis.module';
+import { UploadModule } from './upload/upload.module';
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
@@ -45,7 +46,8 @@ dns.setServers(["1.1.1.1", "8.8.8.8"]);
     PostsModule,
     VotesModule,
     CommentsModule,
-    RedisModule
+    RedisModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,5 +1,3 @@
-
-
 export default () => ({
   database: {
     uri: process.env.MONGO_URL,
@@ -18,5 +16,10 @@ export default () => ({
     REDIS_HOST: process.env.REDIS_HOST,
     REDIS_PORT: process.env.REDIS_PORT,
     REDIS_PASS: process.env.REDIS_PASS,
+  },
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
 });
