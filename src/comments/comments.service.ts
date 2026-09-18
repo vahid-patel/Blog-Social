@@ -68,6 +68,13 @@ export class CommentsService {
       parentComment: parentComment ?? null,
     });
 
+    // If this is a reply, increment parent's repliesCount
+    if (parentComment) {
+      await this.commentModel.findByIdAndUpdate(parentComment, {
+        $inc: { repliesCount: 1 },
+      });
+    }
+
     // Increment total comments/replies count
     post.commentsCount += 1;
 
@@ -201,22 +208,32 @@ export class CommentsService {
       );
     }
 
-    // Check whether this comment has replies
-    const hasReplies = await this.commentModel.exists({
+    // If this comment is a reply, decrement parent's repliesCount
+    if (comment.parentComment) {
+      await this.commentModel.findByIdAndUpdate(comment.parentComment, {
+        $inc: { repliesCount: -1 },
+      });
+    }
+
+    // Delete direct child replies recursively if any
+    const childReplies = await this.commentModel.find({
       parentComment: commentId,
     });
+    let deletedCount = 1;
 
-    // =====================================================
-    // HARD DELETE
-    // Comment has no replies
-    // =====================================================
+    if (childReplies.length > 0) {
+      const childResult = await this.commentModel.deleteMany({
+        parentComment: commentId,
+      });
+      deletedCount += childResult.deletedCount || 0;
+    }
 
     await comment.deleteOne();
 
     // Decrement post commentsCount
     await this.postModel.findByIdAndUpdate(comment.post, {
       $inc: {
-        commentsCount: -1,
+        commentsCount: -deletedCount,
       },
     });
 

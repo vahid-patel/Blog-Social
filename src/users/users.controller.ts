@@ -33,8 +33,12 @@ export class UsersController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('profile')
-  getUser(@Req() req: Request) {
-    return req.user;
+  async getUser(@Req() req: AuthRequest) {
+    const user = await this.usersService.findById(req.user.userId);
+    if (!user) {
+      return req.user;
+    }
+    return user;
   }
   @UseGuards(AuthGuard('jwt'))
   @Patch('update')

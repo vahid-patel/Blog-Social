@@ -51,6 +51,11 @@ export class Comment {
     default: 0,
   })
   score!: number;
+
+  @Prop({
+    default: 0,
+  })
+  repliesCount!: number;
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);

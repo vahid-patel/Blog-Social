@@ -18,9 +18,9 @@ export class CreatePostDto {
   @IsObject()
   content!: Record<string, any>;
 
-  @IsOptional()
-  @IsEnum(Category)
-  category?: Category;
+  @IsNotEmpty({ message: 'Category is required' })
+  @IsEnum(Category, { message: 'Invalid category provided' })
+  category!: Category;
 
   @IsOptional()
   @IsArray()
