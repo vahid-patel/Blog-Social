@@ -22,16 +22,31 @@ export class PostsService {
     });
   }
 
-  async getAllPosts(page: number, limit: number) {
+  async getAllPosts(page: number, limit: number, sortBy: string = 'newest') {
     const skip = (page - 1) * limit;
+
+    let sortOption: Record<string, 1 | -1> = { createdAt: -1 };
+    if (sortBy === 'oldest') {
+      sortOption = { createdAt: 1 };
+    } else if (sortBy === 'most_liked' || sortBy === 'popular') {
+      sortOption = { score: -1, upvotesCount: -1, createdAt: -1 };
+    } else if (sortBy === 'trending') {
+      sortOption = { score: -1, views: -1, commentsCount: -1, createdAt: -1 };
+    } else {
+      // Default: newest
+      sortOption = { createdAt: -1 };
+    }
 
     const posts = await this.postModel
       .find({ status: PostStatus.PUBLISHED })
+      .sort(sortOption)
       .skip(skip)
       .limit(limit)
       .populate('author', 'name email');
 
-    const totalPosts = await this.postModel.countDocuments({status: PostStatus.PUBLISHED});
+    const totalPosts = await this.postModel.countDocuments({
+      status: PostStatus.PUBLISHED,
+    });
 
     return {
       totalPosts,
