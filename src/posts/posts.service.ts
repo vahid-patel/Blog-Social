@@ -104,7 +104,7 @@ export class PostsService {
 
   async findOne(id: string) {
     const post = await this.postModel
-      .findOne({ _id: id, status: PostStatus.PUBLISHED })
+      .findById(id)
       .populate('author', 'name email');
 
     if (!post) throw new NotFoundException('Post not found');
@@ -117,7 +117,10 @@ export class PostsService {
 
     if (!post) throw new NotFoundException('Post not found');
 
-    if (post.author.toString() !== user.userId) {
+    const isOwner = post.author.toString() === user.userId;
+    const isAdmin = user.role === 'ADMIN';
+
+    if (!isOwner && !isAdmin) {
       throw new ForbiddenException('You are not allowed to update this post');
     }
 
