@@ -22,7 +22,13 @@ export class PostsService {
     });
   }
 
-  async getAllPosts(page: number, limit: number, sortBy: string = 'newest') {
+  async getAllPosts(
+    page: number,
+    limit: number,
+    sortBy: string = 'newest',
+    author?: string,
+    status?: string,
+  ) {
     const skip = (page - 1) * limit;
 
     let sortOption: Record<string, 1 | -1> = { createdAt: -1 };
@@ -37,16 +43,25 @@ export class PostsService {
       sortOption = { createdAt: -1 };
     }
 
+    const filter: Record<string, any> = {};
+    if (status && Object.values(PostStatus).includes(status as PostStatus)) {
+      filter.status = status;
+    } else if (!status) {
+      filter.status = PostStatus.PUBLISHED;
+    }
+
+    if (author) {
+      filter.author = author;
+    }
+
     const posts = await this.postModel
-      .find({ status: PostStatus.PUBLISHED })
+      .find(filter)
       .sort(sortOption)
       .skip(skip)
       .limit(limit)
       .populate('author', 'name email');
 
-    const totalPosts = await this.postModel.countDocuments({
-      status: PostStatus.PUBLISHED,
-    });
+    const totalPosts = await this.postModel.countDocuments(filter);
 
     return {
       totalPosts,

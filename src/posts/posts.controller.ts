@@ -35,10 +35,12 @@ export class PostsController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('sortBy') sortBy: string = 'newest',
+    @Query('author') author?: string,
+    @Query('status') status?: string,
   ) {
     const Page = parseInt(page);
     const Limit = parseInt(limit);
-    return this.postsService.getAllPosts(Page, Limit, sortBy);
+    return this.postsService.getAllPosts(Page, Limit, sortBy, author, status);
   }
 
   @Get('search')
